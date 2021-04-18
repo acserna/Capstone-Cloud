@@ -1,22 +1,22 @@
 {
-   "kind":"ReplicationController",
-   "apiVersion":"v1",
-   "metadata":{
-      "name":"acsr",
-      "labels":{
-         "app":"blue"
-      }
-   },
-   "spec":{
-      "replicas":1,
-      "selector":{
-         "app":"blue"
-      },
-      "template":{
-         "metadata":{
-            "labels":{
-               "app":"blue"
-            }
+    "kind":"ReplicationController",
+    "apiVersion":"v1",
+    "metadata":{
+       "name":"acsr",
+       "labels":{
+          "app":"blue"
+       }
+    },
+    "spec":{
+       "replicas":1,
+       "selector":{
+          "app":"blue"
+       },
+       "template":{
+          "metadata":{
+             "labels":{
+                "app":"blue"
+             }
          },
          "spec":{
             "containers":[

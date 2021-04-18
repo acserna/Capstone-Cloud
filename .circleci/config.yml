@@ -100,5 +100,5 @@ workflows:
        #    requires: [build-container]
        #- create-or-update-eks-deployment:
        #    requires: [create-eks-cluster]
-       #- build-container
-       - create-or-update-eks-deployment
+       - build-container
+       #- create-or-update-eks-deployment
