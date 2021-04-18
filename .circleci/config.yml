@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   aws-eks: circleci/aws-eks@1.0.3
+  kubernetes: circleci/kubernetes@0.4.0
 
 parameters:
   cluster-name:
@@ -72,6 +73,22 @@ jobs:
       - aws-eks/update-kubeconfig-with-authenticator:
           cluster-name: << pipeline.parameters.cluster-name >>
           install-kubectl: true
+      - kubernetes/create-or-update-resource:
+          get-rollout-status: false
+          resource-file-path: blue-controller.json
+      - kubernetes/create-or-update-resource:
+           get-rollout-status: false
+           resource-file-path: green-controller.json
+      - kubernetes/create-or-update-resource:
+          get-rollout-status: false
+          resource-file-path: blue-green-service.json
+      - run:
+          name: Check the Resources
+          command: |
+            kubectl get services
+            kubectl get pods
+            kubectl get deploy,po -o wide
+            kubectl get nodes -o wide
 
 workflows:
   default:
@@ -83,4 +100,5 @@ workflows:
        #    requires: [build-container]
        #- create-or-update-eks-deployment:
        #    requires: [create-eks-cluster]
-       - create-or-update-eks-deployment
+       - build-container
+       #- create-or-update-eks-deployment
