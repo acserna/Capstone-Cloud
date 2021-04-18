@@ -90,6 +90,13 @@ jobs:
             kubectl get deploy,po -o wide
             kubectl get nodes -o wide
 
+  delete-eks-cluster:
+    executor: aws-eks/python3
+    steps:
+      - chekout
+      - aws-eks/delete-cluster:
+          cluster-name: << pipeline.parameters.cluster-name >>
+
 workflows:
   default:
      jobs:
@@ -98,8 +105,9 @@ workflows:
        #    requires: [lint-app]
        #- create-eks-cluster:
        #    requires: [build-container]
-       - create-eks-cluster
-       - create-or-update-eks-deployment:
-           requires: [create-eks-cluster]
+       #- create-eks-cluster
+       #- create-or-update-eks-deployment:
+       #    requires: [create-eks-cluster]
        #- build-container
        #- create-or-update-eks-deployment
+       - delete-eks-cluster
