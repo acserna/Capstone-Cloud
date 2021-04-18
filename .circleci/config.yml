@@ -76,10 +76,11 @@ jobs:
 workflows:
   default:
      jobs:
-       - lint-app
-       - build-container:
-           requires: [lint-app]
-       - create-eks-cluster:
-           requires: [build-container]
+       #- lint-app
+       #- build-container:
+       #    requires: [lint-app]
+       #- create-eks-cluster:
+       #    requires: [build-container]
+       #- create-or-update-eks-deployment:
+       #    requires: [create-eks-cluster]
        - create-or-update-eks-deployment:
-           requires: [create-eks-cluster]
