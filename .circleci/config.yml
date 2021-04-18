@@ -1,5 +1,13 @@
 version: 2.1
 
+orbs:
+  aws-eks: circleci/aws-eks@1.0.3
+
+parameters:
+  cluster-name:
+    type: string
+    default: "Udacity-Capstone"
+
 jobs:
   lint-app:
     docker:
@@ -47,9 +55,21 @@ jobs:
           docker tag capstone/capstone-app-green-$CIRCLE_WORKFLOW_ID:latest $DOCKER_USER/capstone-app-green-$CIRCLE_WORKFLOW_ID:latest
           docker push $DOCKER_USER/capstone-app-green-$CIRCLE_WORKFLOW_ID:latest
 
+  create-eks-cluster:
+    executor: aws-eks/python3
+    steps:
+      - checkout
+      - aws-eks/create-cluster:
+          cluster-name: << pipeline.parameters.cluster-name >>
+          aws-region: us-west-2
+          node-type: t2.medium
+          nodes: 1
+
 workflows:
   default:
      jobs:
        - lint-app
        - build-container:
            requires: [lint-app]
+       - create-eks-cluster:
+           requires: [build-container]
