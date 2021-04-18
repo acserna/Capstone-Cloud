@@ -81,3 +81,5 @@ workflows:
            requires: [lint-app]
        - create-eks-cluster:
            requires: [build-container]
+      - create-or-update-eks-deployment:
+           requires: [create-eks-cluster]
