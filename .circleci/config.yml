@@ -83,4 +83,4 @@ workflows:
        #    requires: [build-container]
        #- create-or-update-eks-deployment:
        #    requires: [create-eks-cluster]
-       - create-or-update-eks-deployment:
+       - create-or-update-eks-deployment
