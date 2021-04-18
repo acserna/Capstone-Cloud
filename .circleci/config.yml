@@ -93,7 +93,7 @@ jobs:
   delete-eks-cluster:
     executor: aws-eks/python3
     steps:
-      - chekout
+      - checkout
       - aws-eks/delete-cluster:
           cluster-name: << pipeline.parameters.cluster-name >>
 
