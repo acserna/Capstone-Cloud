@@ -124,25 +124,5 @@ jobs:
 workflows:
   default:
      jobs:
-       - lint-app
-       - build-container:
-           requires: [lint-app]
-       - create-eks-cluster:
-           requires: [build-container]
-       - create-or-update-eks-deployment:
-           requires: [create-eks-cluster]
-       - aws-eks/update-container-image:
-          cluster-name: Udacity-ACSR
-          container-image-updates: gsvcapstone=andrecamilosr/gsvcapstone
-          post-steps:
-              - kubernetes/delete-resource:
-                  resource-names: gsvcapstone
-                  resource-types: deployment
-                  wait: true
-          record: true
-          requires:
-              - create-or-update-eks-deployment
-          resource-name: deployment/gsvcapstone
-       - test-cluster:
-           requires: [aws-eks/update-container-image]
+       - delete-eks-cluster
        
