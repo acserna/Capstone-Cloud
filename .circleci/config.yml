@@ -7,7 +7,7 @@ orbs:
 parameters:
   cluster-name:
     type: string
-    default: "Udacity-Capstone3"
+    default: "Udacity-ACSR"
 
 jobs:
   lint-app:
@@ -39,23 +39,25 @@ jobs:
             make lint
 
   build-container:
-    docker:
-      - image: circleci/golang:1.15
-        auth:
-          username: $DOCKER_USER
-          password: $DOCKER_PASS  # context / project UI env-var reference
+    machine: true
+    working_directory: ~/app
+    #docker:
+    #  - image: circleci/golang:1.15
+    #    auth:
+    #      username: $DOCKER_USER
+    #      password: $DOCKER_PASS  # context / project UI env-var reference
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 19.03.13
-          docker_layer_caching: false
+      #- setup_remote_docker:
+      #    version: 19.03.13
+      #    docker_layer_caching: false
       - run: |
           echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
-          docker build --tag $DOCKER_USER/capstone-app-green:$CIRCLE_WORKFLOW_ID .
-          
-          docker tag $DOCKER_USER/capstone-app-green:$CIRCLE_WORKFLOW_ID $DOCKER_USER/capstone-app-green:latest
-          docker push $DOCKER_USER/capstone-app-green:latest
+          docker build -t andrecamilosr/gsvcapstone:${CIRCLE_WORKFLOW_ID:0:7} .
+          docker push andrecamilosr/gsvcapstone:${CIRCLE_WORKFLOW_ID:0:7}
+          docker tag andrecamilosr/gsvcapstone:${CIRCLE_WORKFLOW_ID:0:7} andrecamilosr/gsvcapstone:latest
+          docker push andrecamilosr/gsvcapstone:latest
 
   create-eks-cluster:
     executor: aws-eks/python3
@@ -63,8 +65,8 @@ jobs:
       - checkout
       - aws-eks/create-cluster:
           cluster-name: << pipeline.parameters.cluster-name >>
-          #aws-region: us-west-2
-          #node-type: t2.medium
+          aws-region: us-west-2
+          node-type: t2.medium
           #nodes: 1
 
   create-or-update-eks-deployment:
@@ -79,7 +81,7 @@ jobs:
       - kubernetes/create-or-update-resource:
           get-rollout-status: true
           resource-file-path: deploy.yml
-          resource-name: deployment/capstone-app-green
+          resource-name: deployment/gsvcapstone
 
       #- kubernetes/create-or-update-resource:
       #    get-rollout-status: false
@@ -131,8 +133,23 @@ workflows:
        #- create-or-update-eks-deployment:
        #    requires: [create-eks-cluster]
 
-       - aws-eks/delete-cluster:
-          cluster-name: "Udacity-Capstone3"
-
-
+       - build-container
+       - create-eks-cluster:
+           requires: [build-container]
+       - create-or-update-eks-deployment:
+           requires: [create-eks-cluster]
+       - aws-eks/update-container-image:
+          cluster-name: Udacity-ACSR
+          container-image-updates: gsvcapstone=andrecamilosr/gsvcapstone
+          post-steps:
+              - kubernetes/delete-resource:
+                  resource-names: gsvcapstone
+                  resource-types: deployment
+                  wait: true
+          record: true
+          requires:
+              - create-or-update-eks-deployment
+          resource-name: deployment/gsvcapstone
+       - test-cluster:
+           requires: [aws-eks/update-container-image]
        
