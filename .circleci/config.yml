@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   aws-eks: circleci/aws-eks@1.0.3
-  kubernetes: circleci/kubernetes@0.4.0
+  kubernetes: circleci/kubernetes@0.11.2
 
 parameters:
   cluster-name:
@@ -50,11 +50,12 @@ jobs:
           version: 19.03.13
           docker_layer_caching: false
       - run: |
-          TAG=0.1.$CIRCLE_BUILD_NUM
-          docker build --tag capstone/capstone-app-green-$CIRCLE_WORKFLOW_ID .
           echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-          docker tag capstone/capstone-app-green-$CIRCLE_WORKFLOW_ID:latest $DOCKER_USER/capstone-app-green-$CIRCLE_WORKFLOW_ID:latest
-          docker push $DOCKER_USER/capstone-app-green-$CIRCLE_WORKFLOW_ID:latest
+
+          docker build --tag $DOCKER_USER/capstone-app-green:$CIRCLE_WORKFLOW_ID .
+          
+          docker tag $DOCKER_USER/capstone-app-green:$CIRCLE_WORKFLOW_ID $DOCKER_USER/capstone-app-green:latest
+          docker push $DOCKER_USER/capstone-app-green:latest
 
   create-eks-cluster:
     executor: aws-eks/python3
@@ -62,33 +63,54 @@ jobs:
       - checkout
       - aws-eks/create-cluster:
           cluster-name: << pipeline.parameters.cluster-name >>
-          aws-region: us-west-2
-          node-type: t2.medium
-          nodes: 1
+          #aws-region: us-west-2
+          #node-type: t2.medium
+          #nodes: 1
 
   create-or-update-eks-deployment:
     executor: aws-eks/python3
     steps:
       - checkout
+      - kubernetes/install
       - aws-eks/update-kubeconfig-with-authenticator:
           cluster-name: << pipeline.parameters.cluster-name >>
           install-kubectl: true
+
       - kubernetes/create-or-update-resource:
-          get-rollout-status: false
-          resource-file-path: blue-controller.json
-      - kubernetes/create-or-update-resource:
-           get-rollout-status: false
-           resource-file-path: green-controller.json
-      - kubernetes/create-or-update-resource:
-          get-rollout-status: false
-          resource-file-path: blue-green-service.json
+          get-rollout-status: true
+          resource-file-path: deploy.yml
+          resource-name: deployment/capstone-app-green
+
+      #- kubernetes/create-or-update-resource:
+      #    get-rollout-status: false
+      #    resource-file-path: blue-controller.json
+      #- kubernetes/create-or-update-resource:
+      #     get-rollout-status: false
+      #     resource-file-path: green-controller.json
+      #- kubernetes/create-or-update-resource:
+      #    get-rollout-status: false
+      #    resource-file-path: blue-green-service.json
+      #- run:
+      #    name: Check the Resources
+      #    command: |
+      #      kubectl get services
+      #      kubectl get pods
+      #      kubectl get deploy,po -o wide
+      #      kubectl get nodes -o wide
+
+  test-cluster:
+    executor: aws-eks/python3
+    steps:
+      - kubernetes/install
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << pipeline.parameters.cluster-name >>
       - run:
-          name: Check the Resources
+          name: testing cluster
           command: |
-            kubectl get services
+            kubectl get svc
+            kubectl get nodes
             kubectl get pods
-            kubectl get deploy,po -o wide
-            kubectl get nodes -o wide
+            kubectl get deployment
 
   delete-eks-cluster:
     executor: aws-eks/python3
@@ -108,6 +130,23 @@ workflows:
        #- create-eks-cluster
        #- create-or-update-eks-deployment:
        #    requires: [create-eks-cluster]
-       #- build-container
-       #- create-or-update-eks-deployment
-       - delete-eks-cluster
+       - build-container
+       - create-eks-cluster:
+           requires: [build-container]
+       - create-or-update-eks-deployment:
+           requires: [create-eks-cluster]
+       - aws-eks/update-container-image:
+          cluster-name: Udacity-Capstone
+          container-image-updates: capstone-app-green=andrecamilosr/capstone-app-green
+          post-steps:
+              - kubernetes/delete-resource:
+                  resource-names: capstone-app-green
+                  resource-types: deployment
+                  wait: true
+          record: true
+          requires:
+              - create-or-update-eks-deployment
+          resource-name: deployment/capstone-app-green
+       - test-cluster:
+           requires: [aws-eks/update-container-image]
+       #- delete-eks-cluster
