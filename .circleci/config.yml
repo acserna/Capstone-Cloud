@@ -7,7 +7,7 @@ orbs:
 parameters:
   cluster-name:
     type: string
-    default: "Udacity-Capstone"
+    default: "Udacity-Capstone3"
 
 jobs:
   lint-app:
@@ -136,7 +136,7 @@ workflows:
        - create-or-update-eks-deployment:
            requires: [create-eks-cluster]
        - aws-eks/update-container-image:
-          cluster-name: Udacity-Capstone
+          cluster-name: Udacity-Capstone3
           container-image-updates: capstone-app-green=andrecamilosr/capstone-app-green
           post-steps:
               - kubernetes/delete-resource:
