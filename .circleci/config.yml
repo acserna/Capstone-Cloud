@@ -130,23 +130,9 @@ workflows:
        #- create-eks-cluster
        #- create-or-update-eks-deployment:
        #    requires: [create-eks-cluster]
-       - build-container
-       - create-eks-cluster:
-           requires: [build-container]
-       - create-or-update-eks-deployment:
-           requires: [create-eks-cluster]
-       - aws-eks/update-container-image:
-          cluster-name: Udacity-Capstone3
-          container-image-updates: capstone-app-green=andrecamilosr/capstone-app-green
-          post-steps:
-              - kubernetes/delete-resource:
-                  resource-names: capstone-app-green
-                  resource-types: deployment
-                  wait: true
-          record: true
-          requires:
-              - create-or-update-eks-deployment
-          resource-name: deployment/capstone-app-green
-       - test-cluster:
-           requires: [aws-eks/update-container-image]
-       #- delete-eks-cluster
+
+       - aws-eks/delete-cluster:
+          cluster-name: "Udacity-Capstone3"
+
+
+       
